@@ -1,10 +1,27 @@
-"""A collection of utilities for petrology and geochemistry"""
+"""A collection of utilities for petrology and geochemistry
+
+License:    CC BY-SA 
+Author:     James K. Muller
+Github:     jkmgeo
+Email:      jamuller@ucsd.edu
+"""
+
+# import dependencies
+import os
+import pandas as pd
+
+# built-in data directory:
+include_dir = "include"
+
+# built-in data files:
+bse_file = "bse.csv"
 
 ################ ################
-# specify default parameters
+# specify default attributes/params
 ################ ################
 
-# elements for normalization
+# ELEMENTS FOR NORMALIZATION:
+
 extended = [
     "Cs", "Rb", "Ba", "Th", 
     "Nb", "U", "La", "Ce", 
@@ -20,7 +37,14 @@ ree = [
     "Nd", "Sm", "Eu", "Gd", 
     "Tb", "Dy", "Ho", "Er", 
     "Tm", "Yb", "Lu"
-] # sorted by increasing Z number
+] # lanthanides, sorted by increasing Z number
+
+# BUILT-IN DATA:
+
+bse = pd.read_csv(
+    os.path.join(os.getcwd(), include_dir, bse_file),
+    index_col = "Element"
+); # primitive mantle (McDonough & Sun, 1995, Chem. Geol.)
 
 ################ ################
 # util: CamelCase
@@ -32,7 +56,8 @@ def camel(el):
     Parameters
     ----------
     el: str
-        elemental abbreviation
+        elemental abbreviation. Will not function as expected for compound 
+        formulae, e.g., oxide species.
 
     Returns
     -------
@@ -47,7 +72,13 @@ def camel(el):
 # util: normalize to PM
 ################ ################
 
-def pm_norm(df, cols = ree):
+def pm_norm(
+    df, 
+    cols = ree, 
+    squeeze = True, 
+    interp = False, 
+    norm_vals = bse
+):
     """
     _NORM_alize geochemical elements to _P_rimitive _M_antle of McDonough & 
     Sun (1995, Chem. Geol.).
@@ -82,23 +113,41 @@ def pm_norm(df, cols = ree):
             ] # modified after Hofmann (1997, Nature)`
             
         If `list`: List of elemental abbreviations.
+        
+    squeeze: bool
+        Specify whether to compress norm_df to include only those columns in 
+        both input and normalizing datasets (i.e., intersection)
+    
+    interp: bool
+        Specify whether to fill empty columns using linear interpolation of 
+        neighboring columns. Requires `squeeze = False`.
+    
+    norm_vals: pandas DataFrame
+        Tidy dataframe of normalizing values, where indices are chemical 
+        element abbreviations, and first column has abundance data. Defaults 
+        to Bulk Silicate Earth (BSE), a.k.a. pyrolite/Primitive Mantle (PM) of 
+        McDonough & Sun (1995, Chem. Geol., doi:10.1016/0009-2541(94)00140-4).
     
     Returns
     -------
     norm_df: pandas DataFrame
-        Tidy dataset of normalized data. Dataframe may be of different shape 
+        Tidy dataset of normalized data. Shape will be equal to shape of input 
+        `df` if `squeeze = False`, else will be more narrow. Dataframe may be of different shape 
         than input `df` because columns of output `norm_df` are intersection 
         of variables in `df` and indices (i.e., elemental abbreviations) of 
         normalizing data, from `./include/bse.csv`.
-    
+        
+    To Do
+    -----
+    mark items as complete with 'X' when finished but not yet pushed to Github
+    [ ]:    add `squeeze = False` functionality (i.e., add in columns of NaN)
+    [ ]:    add `interp = True` functionality (i.e., fill columns)
+    [ ]:    increase `spider_plot` functionality, such as legends, colorbars
+        
     """
-    import pandas as pd
     import numpy as np
     
-    # load normalizing dataset (i.e., primitive mantle composition)
-    bse = pd.read_csv("./include/bse.csv", index_col = "Element")
-    
-    # get elemental abbreviations if not passed into function
+    # get elemental abbreviations if not passed as input
     if cols.lower() == "ree":
         cols = ree
         pass
@@ -108,7 +157,7 @@ def pm_norm(df, cols = ree):
     
     # find columns common to `df` and `bse`
     if type(cols) is list:
-        subset_cols = [i if camel(i) in bse.index else None for i in cols]
+        subset_cols = [i if camel(i) in norm_vals.index else None for i in cols]
         
         # confirm >= 1 element found
         if any(subset_cols) is False:
@@ -133,7 +182,7 @@ def pm_norm(df, cols = ree):
         pass
     
     elif type(cols) == str:
-        subset_cols = [cols] if cols in bse.index else False
+        subset_cols = [cols] if cols in norm_vals.index else False
         pass
     
     # normalization of any suitable columns
@@ -143,10 +192,10 @@ def pm_norm(df, cols = ree):
         df_to_norm = df[subset_cols]
         
         # get normalizing values for relevant elements
-        bse_vals = np.array([bse.loc[camel(i)].values[0] for i in subset_cols])
+        normers = np.array([norm_vals.loc[camel(i)].values[0] for i in subset_cols])
         
         # normalize
-        norm_df = df_to_norm / bse_vals
+        norm_df = df_to_norm / normers
         
         # format columns
         norm_df.columns = [camel(i) for i in norm_df.columns]
@@ -163,7 +212,10 @@ def pm_norm(df, cols = ree):
 # util: plot spidergram
 ################ ################
 
-def spider_plot(df, alpha = 0.5):
+def spider_plot(
+    df, 
+    alpha = 0.5
+):
     """
     _PLOT_ multi-element variation (_SPIDER_) diagram
     
@@ -188,10 +240,11 @@ def spider_plot(df, alpha = 0.5):
     # set default plot styling
     plt.style.use("bmh");
     
-    # make plot
+    # make plot objects
     fig, ax = plt.subplots();
     
-    ax.plot(df.T, alpha = alpha);
+    # plot data
+    ax.plot(df.T, alpha = alpha, marker = "d");
     
     # update axes labels, limits, and scale:
     ax.set_ylabel("concentration / BSE");
