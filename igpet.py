@@ -74,12 +74,13 @@ def camel(el):
 
 def pm_norm(
     df, 
-    cols = ree, 
+    cols = "ree", 
     squeeze = True, 
     interp = False, 
-    norm_vals = bse
+    norm_vals = "bse"
 ):
     """
+    
     _NORM_alize geochemical elements to _P_rimitive _M_antle of McDonough & 
     Sun (1995, Chem. Geol.).
     
@@ -93,8 +94,9 @@ def pm_norm(
         "La" for lanthanum, though function will be string format agnostic).
         
     cols: str, list
-        Elements from `df` to be normalized.
-        If `str`: One of {`ree`, `extended`, or elemental abbreviation}, 
+        Elements from `df` to be normalized. Elements *MUST* be in `df`
+        
+        - If `str`: One of {`ree`, `extended`, or elemental abbreviation}, 
             where:
             `ree = [
                 "La", "Ce", "Pr", "Pm", "Nd", 
@@ -112,7 +114,7 @@ def pm_norm(
                 "Yb", "Lu", "Sc", "Cr", "Ni"
             ] # modified after Hofmann (1997, Nature)`
             
-        If `list`: List of elemental abbreviations.
+        - If `list`: List of elemental abbreviations.
         
     squeeze: bool
         Specify whether to compress norm_df to include only those columns in 
@@ -130,7 +132,7 @@ def pm_norm(
     
     Returns
     -------
-    norm_df: pandas DataFrame
+    norm_df: str or pandas DataFrame
         Tidy dataset of normalized data. Shape will be equal to shape of input 
         `df` if `squeeze = False`, else will be more narrow. Dataframe may be of different shape 
         than input `df` because columns of output `norm_df` are intersection 
@@ -139,7 +141,7 @@ def pm_norm(
         
     To Do
     -----
-    mark items as complete with 'X' when finished but not yet pushed to Github
+    [ ]:    add check for `subset_cols` in `df` (presently assumed)
     [ ]:    add `squeeze = False` functionality (i.e., add in columns of NaN)
     [ ]:    add `interp = True` functionality (i.e., fill columns)
     [ ]:    increase `spider_plot` functionality, such as legends, colorbars
@@ -147,29 +149,53 @@ def pm_norm(
     """
     import numpy as np
     
-    # get elemental abbreviations if not passed as input
-    if cols.lower() == "ree":
-        cols = ree
-        pass
-    elif cols.lower() == "extended":
-        cols = extended
-        pass
-    
-    # find columns common to `df` and `bse`
-    if type(cols) is list:
-        subset_cols = [i if camel(i) in norm_vals.index else None for i in cols]
+    # get elemental abbreviations as list if not passed as input
+    if type(cols) is str:
         
-        # confirm >= 1 element found
-        if any(subset_cols) is False:
-            # set flag to `False` if all items are `None`
-            subset_cols = False
+        if cols.lower() == "ree":
+            cols = ree
+            pass
+        
+        elif cols.lower() == "extended":
+            cols = extended
             pass
         
         else:
+            cols = [cols] if cols in norm_vals.index else False
+        pass
+    
+    # get normalizing values as dataframe
+    if type(norm_vals) is str:
+        if norm_vals.lower() == "bse":
+            norm_vals = bse
+            pass
+        pass
+    
+    # find intersecting cols in `cols` and `norm_vals`
+    if cols:
+        subset_cols = [i if camel(i) in norm_vals.index else None \
+                       for i in cols]
+    
+        # possible solution to check if `cols` in `df`:
+        subset_cols = [i if camel(i) in norm_vals.index and \
+                       i in df.columns else None for i in cols]
+    
+        # confirm >= 1 element found
+        if any(subset_cols) is False:
+
+            # set flag to `False` if all items are `None`
+            subset_cols = False
+
+            pass
+
+        else:
+
             try:
+
                 # find if any items are `None`
                 n = subset_cols.count(None)
                 
+                # remove all `None` items
                 for count in range(n):
                     subset_cols.pop(subset_cols.index(None))
                     pass
@@ -178,11 +204,12 @@ def pm_norm(
             except:
                 # handle if no items are `None`
                 pass
+            
             pass
         pass
     
-    elif type(cols) == str:
-        subset_cols = [cols] if cols in norm_vals.index else False
+    else:
+        subset_cols = False
         pass
     
     # normalization of any suitable columns
