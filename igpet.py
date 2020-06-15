@@ -134,10 +134,11 @@ def pm_norm(
     -------
     norm_df: str or pandas DataFrame
         Tidy dataset of normalized data. Shape will be equal to shape of input 
-        `df` if `squeeze = False`, else will be more narrow. Dataframe may be of different shape 
-        than input `df` because columns of output `norm_df` are intersection 
-        of variables in `df` and indices (i.e., elemental abbreviations) of 
-        normalizing data, from `./include/bse.csv`.
+        `df` if `squeeze = False`, else will be more narrow. 
+        Dataframe may be of different shape than input `df` because columns 
+        of output `norm_df` are intersection of variables in `df` and indices 
+        (i.e., elemental abbreviations) of normalizing data, from 
+        `./include/bse.csv`.
         
     To Do
     -----
@@ -219,7 +220,8 @@ def pm_norm(
         df_to_norm = df[subset_cols]
         
         # get normalizing values for relevant elements
-        normers = np.array([norm_vals.loc[camel(i)].values[0] for i in subset_cols])
+        normers = np.array([norm_vals.loc[camel(i)].values[0] \
+                            for i in subset_cols])
         
         # normalize
         norm_df = df_to_norm / normers
@@ -278,5 +280,44 @@ def spider_plot(
     ax.set_yscale("log");
     
     return fig, ax
+
+################ ################
+# util: calculate peridotite solidus
+################ ################
+
+def get_solidus(
+    P
+):
+    """
+    Calculate mantle peridotite solidus temperature, after 
+    Hirschmann (2000, G-cubed).
+    
+    Parameters
+    ----------
+    P: int, float, or array-like
+        Pressure, in GPa
+    
+    Returns
+    -------
+    T: array-like
+        Tempeature, in C
+    
+    """
+    import numpy as np
+    
+    # define constants
+    a = -5.104
+    b = 132.899
+    c = 1120.661
+    
+    # convert to array
+    if type(P) is not np.ndarray:
+        P = np.array(P)
+        pass
+    
+    # calculate solidus T
+    T = a*(P**2) + b*P + c
+    
+    return T
 
 ################ ################
