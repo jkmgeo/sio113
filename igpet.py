@@ -290,7 +290,7 @@ def get_solidus(
 ):
     """
     Calculate mantle peridotite solidus temperature, after 
-    Hirschmann (2000, G-cubed).
+    Hirschmann (2000, G-cubed, doi:10.1029/2000GC000070).
     
     Parameters
     ----------
